@@ -5,7 +5,7 @@
 @media(max-width:780px){.layout{display:block}.side{display:none}.bottom{display:block}.metrics{grid-template-columns:repeat(2,1fr)}.map{grid-template-columns:repeat(2,1fr)}.app{padding-bottom:95px}.hero h1{font-size:22px}}@media(min-width:781px){.modal{align-items:center}.sheet{border-radius:18px}}
 </style></head><body>
 <header class="top"><div class="topin"><div class="brand">IDOL CONNECTION</div><div id="topmode" class="pill" style="background:#ffffff20;color:white">尚未開始</div><div id="clock" class="clock">DAY 1 · 08:00</div><button id="pause" style="padding:6px 9px;font-size:11px">暫停</button><button id="speed" style="padding:6px 9px;font-size:11px">×1</button></div></header>
-<main class="app"><section id="setup" class="setup"><div class="hero"><small>A LIVING TPOP UNIVERSE</small><h1>走進你的偶像世界</h1><p>自由生活、探索城市、工作與休息、認識不同團體的人。沒有唯一正確的玩法，世界也不會只圍著你轉。</p></div><div class="card"><h3>建立新世界</h3><div class="field"><label>遊玩身分</label><div class="seg"><button id="idolMode" class="active">偶像模式</button><button id="managerMode">經紀人模式</button></div></div><div id="idolFields"><div class="field"><label>團體／個人歌手</label><select id="group"></select></div><div class="field" id="memberField"><label>操作角色</label><select id="member"></select></div><div class="field" id="customField" hidden><label>角色名稱（依你先前提供的資料）</label><input id="customName" placeholder="輸入你要扮演的成員姓名"></div></div><div id="managerFields" hidden><div class="field"><label>經紀人姓名</label><input id="managerName" value="我的經紀人"></div><div class="field"><label>身分</label><select id="gender"><option>女經紀人</option><option>男經紀人</option><option>不設定</option></select></div></div><div class="note">你先前已提供 12 團與 HAKU、呂植宇兩位個人歌手的完整資料。這份公開版目前只載入 VERA 的已確認六人名單；其他團體的舊版測試草稿會標明「舊版測試資料」，不會當成正式名單。非 VERA 角色暫時以輸入姓名選擇，並不是要求你重新整理資料。</div><button class="primary" id="start" style="width:100%;margin-top:12px">開始生活</button><div class="row" style="margin-top:8px"><button id="load">讀取此裝置存檔</button><button id="import">匯入 JSON</button></div></div></section>
+<main class="app"><section id="setup" class="setup"><div class="hero"><small>A LIVING TPOP UNIVERSE</small><h1>走進你的偶像世界</h1><p>自由生活、探索城市、工作與休息、認識不同團體的人。沒有唯一正確的玩法，世界也不會只圍著你轉。</p></div><div class="card"><h3>建立新世界</h3><div class="field"><label>遊玩身分</label><div class="seg"><button id="idolMode" class="active">偶像模式</button><button id="managerMode">經紀人模式</button></div></div><div id="idolFields"><div class="field"><label>團體／個人歌手</label><select id="group"></select></div><div class="field" id="memberField"><label id="memberLabel">選擇團體成員</label><select id="member"></select><div class="tiny muted" id="memberNote" style="margin-top:6px"></div></div></div><div id="managerFields" hidden><div class="field"><label>經紀人姓名</label><input id="managerName" value="我的經紀人"></div><div class="field"><label>身分</label><select id="gender"><option>女經紀人</option><option>男經紀人</option><option>不設定</option></select></div></div><div class="note">團體模式必須從成員下拉選單選擇；個人歌手會直接以本人身分開始，不會再出現成員欄位。部分團體的正式名單尚未成功同步至目前公開版，會明確顯示資料狀態，不要求玩家自行輸入姓名。</div><button class="primary" id="start" style="width:100%;margin-top:12px">開始生活</button><div class="row" style="margin-top:8px"><button id="load">讀取此裝置存檔</button><button id="import">匯入 JSON</button></div></div></section>
 <section id="game" hidden><div class="layout"><aside class="side"><div class="identity"><b id="sideName">玩家</b><span class="tiny muted" id="sideRole"></span><div class="row" style="margin-top:7px"><span class="pill" id="day">第 1 天</span><span class="pill" id="place">宿舍</span></div></div><nav class="nav" id="nav"></nav></aside><div><div class="pagehead"><div><h2 id="pagetitle">生活現場</h2><span id="pagesub" class="tiny muted">你目前的日常</span></div><button id="save">儲存</button></div><div id="metrics" class="metrics"></div><div id="content"></div></div></div></section></main>
 <div class="bottom"><div class="bottomin" id="bottomnav"></div></div><div id="modal" class="modal"><div class="sheet"><div class="pagehead"><h3 id="modaltitle">互動</h3><button id="close">關閉</button></div><div id="modalbody"></div></div></div><div id="toast" class="toast"></div><input id="file" type="file" accept=".json" hidden>
 <script>
@@ -25,14 +25,37 @@ const LOC=[["宿舍","生活休息、整理房間與日常互動。"],["經紀�
 const all=DB.flatMap(g=>g[1].map(n=>({name:n,group:g[0],provisional:g[2]!=="依已確認名單"})));
 const PAGES=[["home","⌂","生活現場"],["world","◇","世界地圖"],["people","♙","人物與關係"],["phone","▣","手機社群"],["work","▤","工作行程"],["roster","◎","人物資料庫"],["journal","≡","世界紀錄"],["settings","⚙","存檔回報"]];
 let mode="idol",S=null,page="home",timer=null,last=Date.now();
+const SOLO_GROUPS=["HAKU（個人歌手）","呂植宇（LCY，個人歌手）"];
 DB.forEach(g=>$("group").add(new Option(g[0],g[0])));$("group").onchange=fillMembers;fillMembers();
-function fillMembers(){let g=DB.find(x=>x[0]===$("group").value);if(g&&g[0]==="VERA"){ $("memberField").hidden=false;$("customField").hidden=true;$("member").innerHTML=g[1].map(n=>"<option>"+esc(n)+"</option>").join("")}else{$("memberField").hidden=true;$("customField").hidden=false}}
+function fillMembers(){
+ let g=DB.find(x=>x[0]===$("group").value), solo=SOLO_GROUPS.includes($("group").value), sel=$("member");
+ if(solo){
+  $("memberField").hidden=true;
+  $("memberNote").textContent="";
+  $("start").disabled=false;
+  return;
+ }
+ $("memberField").hidden=false;
+ $("memberLabel").textContent="選擇團體成員";
+ sel.innerHTML="";
+ if(g&&g[1].length){
+  g[1].forEach(n=>sel.add(new Option(n,n)));
+  sel.disabled=false;
+  $("memberNote").textContent=g[0]==="VERA"?"已載入 VERA 六位成員。":"目前僅載入舊版測試名單，完整正式名冊尚待同步；請勿將此名單視為最終資料。";
+  $("start").disabled=false;
+ }else{
+  sel.add(new Option("此團體的正式成員名單尚未同步",""));
+  sel.disabled=true;
+  $("memberNote").textContent="這個團體的資料尚未成功載入網站，暫時無法選擇角色；不需要自行輸入姓名。";
+  $("start").disabled=true;
+ }
+}
 $("idolMode").onclick=()=>setMode("idol");$("managerMode").onclick=()=>setMode("manager");
 function setMode(m){mode=m;$("idolMode").classList.toggle("active",m==="idol");$("managerMode").classList.toggle("active",m==="manager");$("idolFields").hidden=m!=="idol";$("managerFields").hidden=m!=="manager"}
 function person(name,group,place){return {id:group+"|"+name,name,group,place,energy:70+Math.random()*25,hunger:60+Math.random()*35,hygiene:65+Math.random()*30,social:50+Math.random()*40,fun:50+Math.random()*40,mood:60+Math.random()*30,money:20000,skills:{歌唱:25,舞蹈:25,表演:20},trait:rand(["慢熟","外向","細心","行動派","隨和","好勝","感性","理性"]),schedule:"自由活動"}}
-function createWorld(){let group,name;if(mode==="idol"){group=$("group").value;name=group==="VERA"?$("member").value:$("customName").value.trim();if(!name){toast("請輸入角色名稱");return}}else{group="獨立經紀人";name=$("managerName").value.trim()||"我的經紀人"}
+function createWorld(){let group,name;if(mode==="idol"){group=$("group").value;let solo=SOLO_GROUPS.includes(group);name=solo?(group.startsWith("HAKU")?"HAKU":"呂植宇"): $("member").value;if(!solo&&!name){toast("此團體成員名單尚未同步，暫時無法建立角色");return}}else{group="獨立經紀人";name=$("managerName").value.trim()||"我的經紀人"}
 let chars=all.map((x,i)=>{let c=person(x.name,x.group,LOC[(i+2)%LOC.length][0]);c.provisional=!!x.provisional;return c;});let player=person(name,group,mode==="manager"?"經紀公司":"宿舍");player.id="player|"+name;player.isPlayer=true;chars=chars.filter(c=>!(c.name===name&&c.group===group));chars.unshift(player);
-S={version:"0.3.2",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:""},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};seedJobs();log("世界開始","你以"+(mode==="manager"?"獨立經紀人":"偶像成員")+"身分開始新的生活。這個世界沒有固定主線，你可以自己決定今天的方向。");$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render()}
+S={version:"0.3.3",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:""},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};seedJobs();log("世界開始","你以"+(mode==="manager"?"獨立經紀人":"偶像成員")+"身分開始新的生活。這個世界沒有固定主線，你可以自己決定今天的方向。");$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render()}
 $("start").onclick=createWorld;
 function cur(){return S.characters.find(c=>c.id===S.controlId)||S.characters[0]}
 function time(){return String(Math.floor(S.minute/60)%24).padStart(2,"0")+":"+String(Math.floor(S.minute%60)).padStart(2,"0")}
