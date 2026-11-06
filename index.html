@@ -12,26 +12,50 @@
 (function(){
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),rand=a=>a[Math.floor(Math.random()*a.length)],clamp=n=>Math.max(0,Math.min(100,n));
 const DB=[
-["Ozone",[],"已由使用者提供｜網站版尚未同步"],["AcQUA 源少年",[],"已由使用者提供｜網站版尚未同步"],["FEniX",["浦洋","峻廷","家齊","MAX","承隆"],"舊版測試草稿｜非正式名單"],
-["VERA",["Nelson（紀成澔）","藍弟（藍子桓）","蔡朕","學文（廖學文）","巴比（林子祐）","孟維"],"依已確認名單"],
-["U:NUS",[],"已由使用者提供｜網站版尚未同步"],["OPENsi",[],"已由使用者提供｜網站版尚未同步"],["Saturnday",["新民","立杰","凱杰","永安"],"舊版測試草稿｜非正式名單"],
-["F.F.O",["俊希","張鈞嘉","小新","彥旭","勝銘","加藤琉士","至琦"],"舊版測試草稿｜非正式名單"],
-["ARKis",["Alex","黃崇峻","Vin（黃嘉楷）","鄭彫秦","禾雁凱","伍承慶／Mikey","李東翰","李定"],"舊版測試草稿｜非正式名單"],
-["B CRUSH（不小心製造）",["洪暐","宰宰","彥","蝶香"],"舊版測試草稿｜非正式名單"],
-["ELL&s",["閃閃","玉歆","若熙","Cherry"],"舊版測試草稿｜非正式名單"],
-["幽靈水晶",["芝婷","昀靚","子瑄","書蘊","蔡菜","子秦"],"舊版測試草稿｜非正式名單"],
-["HAKU（個人歌手）",["HAKU"],"個人歌手資料已提供｜網站版尚未同步"],["呂植宇（LCY，個人歌手）",["呂植宇"],"個人歌手資料已提供｜網站版尚未同步"]];
+["Ozone",["周祖安","周子翔","黃文廷","林佳辰","林煥鈞","李哲言"],"六人名單｜公開資料同步"],
+["AcQUA 源少年",["黃莑茗","盧佾暘","李秉諭","林毓家"],"現任四人名單｜須弘道列為曾任成員"],
+["FEniX",["浦洋","峻廷","家齊","MAX","承隆"],"專案成員名稱"],
+["VERA",["Nelson（紀成澔）","藍弟（藍子桓）","蔡朕","學文（廖學文）","孟維"],"團體成員；巴比另列個人歌手"],
+["U:NUS",["高胥崴","高有翔","吳昱廷","蔡承祐"],"四人名單｜公開資料同步"],
+["OPENsi",["黃威任","陳治廷","邱勝揚","陳子輇"],"四人名單｜2026 合約期滿後單飛不解散"],
+["Saturnday",["新民","立杰","凱杰","永安"],"專案成員名稱"],
+["F.F.O",["鈞嘉","俊希","小新","彥旭","勝銘","至琦","加藤琉士"],"鈞嘉為藝名／常用名；張鈞嘉為本名"],
+["ARKis",["Alex","黃崇峻","Vin","鄭彫秦","禾雁凱","Mikey","李東翰","李定"],"Vin、Mikey 使用藝名"],
+["B CRUSH（不小心製造）",["洪暐","宰宰","彥","蝶香"],"專案既有名單"],
+["ELL&s",["閃閃","玉歆","若熙","Cherry"],"專案既有名單"],
+["幽靈水晶",["芝婷","昀靚","子瑄","書蘊","蔡菜","子秦"],"專案既有名單"]
+];
+const SOLO_ARTISTS=[
+ {label:"HAKU（個人歌手）",name:"HAKU",key:"solo|HAKU",affiliations:[]},
+ {label:"巴比（個人歌手）",name:"巴比",key:"solo|巴比",affiliations:["VERA"]},
+ {label:"植宇（個人歌手）",name:"植宇",key:"solo|植宇",aliases:["呂植宇"],producerCredit:"LCY",affiliations:[]}
+];
+const ARTIST_META={
+ "F.F.O|鈞嘉":{displayName:"鈞嘉",legalName:"張鈞嘉",note:"遊戲與藝人名單使用「鈞嘉」；「張鈞嘉」是本名。"},
+ "ARKis|Vin":{displayName:"Vin",stageName:"Vin",actorName:"黃嘉楷",note:"Vin 是藝名；黃嘉楷是以演員身分出現時使用的姓名。"},
+ "ARKis|Mikey":{displayName:"Mikey",stageName:"Mikey",legalName:"伍承慶",note:"Mikey 是藝名；伍承慶是本名，較少使用。"},
+ "solo|巴比":{displayName:"巴比",legalName:"林子祐",affiliations:["VERA"],category:"個人歌手"},
+ "solo|植宇":{displayName:"植宇",alternateName:"呂植宇",producerCredit:"LCY",note:"平常使用「植宇」或「呂植宇」；LCY 僅用於音樂製作署名。"}
+};
+const FORMATIVE_MEMBERS={"AcQUA 源少年":["須弘道"]};
 const LOC=[["宿舍","生活休息、整理房間與日常互動。"],["經紀公司","會議、企劃、工作窗口和團體行程。"],["練習室 A","團體排練、舞蹈和歌唱訓練。"],["練習室 B","另一個練習空間，常有不同人物出入。"],["錄音室","錄音、試唱、作品討論。"],["攝影棚","形象拍攝、短影音和品牌工作。"],["餐廳","用餐和偶遇熟人的公共場所。"],["咖啡店","聊天、休息或一個人度過下午。"],["商圈","採買日用品、逛街和購物。"],["公園","散步、慢跑和放空。"],["表演場館","彩排、演出和粉絲活動。"]];
-const all=DB.flatMap(g=>g[1].map(n=>({name:n,group:g[0],provisional:g[2]!=="依已確認名單"})));
+const all=[
+ ...DB.flatMap(g=>g[1].map(n=>({name:n,group:g[0],provisional:false,meta:ARTIST_META[g[0]+"|"+n]||null}))),
+ ...SOLO_ARTISTS.map(a=>({name:a.name,group:"個人歌手",solo:true,key:a.key,aliases:a.aliases||[],producerCredit:a.producerCredit||"",affiliations:a.affiliations||[],meta:ARTIST_META[a.key]||null,provisional:false}))
+];
 const PAGES=[["home","⌂","生活現場"],["world","◇","世界地圖"],["people","♙","人物與關係"],["phone","▣","手機社群"],["work","▤","工作行程"],["roster","◎","人物資料庫"],["journal","≡","世界紀錄"],["settings","⚙","存檔回報"]];
 let mode="idol",S=null,page="home",timer=null,last=Date.now();
-const SOLO_GROUPS=["HAKU（個人歌手）","呂植宇（LCY，個人歌手）"];
-DB.forEach(g=>$("group").add(new Option(g[0],g[0])));$("group").onchange=fillMembers;fillMembers();
+const SOLO_GROUPS=SOLO_ARTISTS.map(a=>a.label);
+DB.forEach(g=>$("group").add(new Option(g[0],g[0])));
+SOLO_ARTISTS.forEach(a=>$("group").add(new Option(a.label,a.label)));
+$("group").onchange=fillMembers;fillMembers();
 function fillMembers(){
- let g=DB.find(x=>x[0]===$("group").value), solo=SOLO_GROUPS.includes($("group").value), sel=$("member");
+ let selected=$("group").value;
+ let solo=SOLO_ARTISTS.find(a=>a.label===selected);
+ let g=DB.find(x=>x[0]===selected),sel=$("member");
  if(solo){
   $("memberField").hidden=true;
-  $("memberNote").textContent="";
+  $("memberNote").textContent="個人歌手直接以「"+solo.name+"」身分開始，不需要選擇團體成員。";
   $("start").disabled=false;
   return;
  }
@@ -41,22 +65,39 @@ function fillMembers(){
  if(g&&g[1].length){
   g[1].forEach(n=>sel.add(new Option(n,n)));
   sel.disabled=false;
-  $("memberNote").textContent=g[0]==="VERA"?"已載入 VERA 六位成員。":"目前僅載入舊版測試名單，完整正式名冊尚待同步；請勿將此名單視為最終資料。";
+  $("memberNote").textContent=g[2]||"團體成員名單";
   $("start").disabled=false;
  }else{
-  sel.add(new Option("此團體的正式成員名單尚未同步",""));
+  sel.add(new Option("成員資料尚未載入",""));
   sel.disabled=true;
-  $("memberNote").textContent="這個團體的資料尚未成功載入網站，暫時無法選擇角色；不需要自行輸入姓名。";
+  $("memberNote").textContent="此團體目前沒有可選成員資料。";
   $("start").disabled=true;
  }
 }
 $("idolMode").onclick=()=>setMode("idol");$("managerMode").onclick=()=>setMode("manager");
 function setMode(m){mode=m;$("idolMode").classList.toggle("active",m==="idol");$("managerMode").classList.toggle("active",m==="manager");$("idolFields").hidden=m!=="idol";$("managerFields").hidden=m!=="manager";if(m==="manager")$("start").disabled=false;else fillMembers()}
 function person(name,group,place){return {id:group+"|"+name,name,group,place,energy:70+Math.random()*25,hunger:60+Math.random()*35,hygiene:65+Math.random()*30,social:50+Math.random()*40,fun:50+Math.random()*40,mood:60+Math.random()*30,money:20000,skills:{歌唱:25,舞蹈:25,表演:20},trait:rand(["慢熟","外向","細心","行動派","隨和","好勝","感性","理性"]),schedule:"自由活動"}}
-function createWorld(){let group,name;if(mode==="idol"){group=$("group").value;let solo=SOLO_GROUPS.includes(group);name=solo?(group.startsWith("HAKU")?"HAKU":"呂植宇"): $("member").value;if(!solo&&!name){toast("此團體成員名單尚未同步，暫時無法建立角色");return}}else{group="獨立經紀人";name=$("managerName").value.trim()||"我的經紀人"}
-let chars=all.map((x,i)=>{let c=person(x.name,x.group,LOC[(i+2)%LOC.length][0]);c.provisional=!!x.provisional;return c;});let player=person(name,group,mode==="manager"?"經紀公司":"宿舍");player.id="player|"+name;player.isPlayer=true;chars=chars.filter(c=>!(c.name===name&&c.group===group));chars.unshift(player);
-S={version:"0.3.3",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:""},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};seedJobs();log("世界開始","你以"+(mode==="manager"?"獨立經紀人":"偶像成員")+"身分開始新的生活。這個世界沒有固定主線，你可以自己決定今天的方向。");$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render()}
-$("start").onclick=createWorld;
+function createWorld(){
+ let group,name,soloProfile=null;
+ if(mode==="idol"){
+  const selected=$("group").value;
+  soloProfile=SOLO_ARTISTS.find(a=>a.label===selected)||null;
+  if(soloProfile){group="個人歌手";name=soloProfile.name;}
+  else {group=selected;name=$("member").value;if(!name){toast("請先選擇團體成員");return;}}
+ }else{group="獨立經紀人";name=$("managerName").value.trim()||"我的經紀人";}
+ let chars=all.map((x,i)=>{
+  let c=person(x.name,x.group,LOC[(i+2)%LOC.length][0]);
+  c.provisional=!!x.provisional;c.meta=x.meta||null;c.affiliations=x.affiliations||[];
+  c.aliases=x.aliases||[];c.producerCredit=x.producerCredit||"";c.id=x.key||c.id;
+  return c;
+ });
+ let player=person(name,group,mode==="manager"?"經紀公司":"宿舍");
+ player.id=soloProfile?soloProfile.key:"player|"+name;player.isPlayer=true;
+ if(soloProfile){player.meta=ARTIST_META[soloProfile.key]||null;player.affiliations=soloProfile.affiliations||[];player.aliases=soloProfile.aliases||[];player.producerCredit=soloProfile.producerCredit||"";}
+ chars=chars.filter(c=>c.id!==player.id&&!(c.group===group&&c.name===name));chars.unshift(player);
+ S={version:"0.4.0",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:"",artistKey:soloProfile?soloProfile.key:null},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};
+ seedJobs();log("世界開始","你以"+(mode==="manager"?"獨立經紀人":soloProfile?"個人歌手":"團體成員")+"身分開始新的生活。");$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();
+}
 function cur(){return S.characters.find(c=>c.id===S.controlId)||S.characters[0]}
 function time(){return String(Math.floor(S.minute/60)%24).padStart(2,"0")+":"+String(Math.floor(S.minute%60)).padStart(2,"0")}
 function stamp(){return "第 "+S.day+" 天 "+time()}
@@ -95,7 +136,19 @@ $("content").innerHTML=html;document.querySelectorAll("[data-inspect]").forEach(
 function actbtn(t,d,a){return '<button class=action onclick="act(\''+a+'\')"><b>'+t+'</b><small>'+d+'</small></button>'}
 function personRow(c){return ["<div class=person><div class=avatar>",esc(c.name.slice(0,1)),"</div><div class=personmain><b>",esc(c.name),(c.id===S.controlId?" · 操控中":""),(c.provisional?" <span class=pill>舊版測試資料</span>":""),"</b><small>",esc(c.group)," · ",esc(c.place)," · ",esc(c.schedule),"</small></div><button data-inspect='",esc(c.id),"'>查看</button></div>"].join("")}
 function feed(e){return '<div class=feed><time>'+esc(e.time)+'</time><b>'+esc(e.title)+'</b><br>'+esc(e.body)+'</div>'}
-function groupRows(){return DB.map(g=>{let isVera=g[0]==="VERA";let label=isVera?"正式名單已載入 · "+g[1].length+" 位":"你已提供資料｜本版尚未同步";let members=isVera?"<br>"+g[1].map(esc).join("、"):"";return '<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+(isVera?g[1].length+" 位":"資料同步中")+'</span><br><span class=tiny muted>'+label+'</span>'+members+'</div>'}).join("")}
+function groupRows(){
+ const groupHtml=DB.map(g=>{
+  const extra=FORMATIVE_MEMBERS[g[0]]||[];
+  return '<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+g[1].length+' 位</span><br><span class=tiny muted>'+esc(g[2])+'</span><br>'+g[1].map(esc).join("、")+(extra.length?'<br><span class=tiny muted>曾任成員：'+extra.map(esc).join("、")+'</span>':"")+'</div>';
+ }).join("");
+ const soloHtml='<div class=feed><b>個人歌手</b> <span class=pill>'+SOLO_ARTISTS.length+' 位</span><br>'+SOLO_ARTISTS.map(a=>{
+  const meta=ARTIST_META[a.key]||{};let note=meta.legalName?"本名："+meta.legalName:meta.alternateName?"其他常用名："+meta.alternateName:"";
+  if(meta.producerCredit)note+=(note?"；":"")+"音樂製作署名："+meta.producerCredit;
+  if(a.affiliations&&a.affiliations.length)note+=(note?"；":"")+"團體關聯："+a.affiliations.join("、");
+  return '<div style="padding:5px 0"><b>'+esc(a.name)+'</b>'+(note?'<div class=tiny muted>'+esc(note)+'</div>':"")+'</div>';
+ }).join("")+'</div>';
+ return groupHtml+soloHtml;
+}
 function relationsHtml(){let r=Object.values(S.relationships).filter(x=>x.a===S.controlId||x.b===S.controlId);return r.length?r.map(x=>{let id=x.a===S.controlId?x.b:x.a,c=S.characters.find(z=>z.id===id);return '<div class=feed><b>'+esc(c?c.name:"未知人物")+'</b><br>熟悉度 '+x.familiarity+" · 友情 "+x.friendship+" · 信任 "+x.trust+" · 好感 "+x.affection+" · 衝突 "+x.conflict+"</div>"}).join(""):'<div class=empty>目前還沒有建立關係。</div>'}
 function showPage(p){page=p;render()}function travel(l){let p=cur();if(p.place===l){toast("你已在這個地點");return}p.place=l;p.schedule="前往"+l;log("移動","你前往"+l+"。");tick(15);let here=S.characters.filter(c=>c.id!==p.id&&c.place===l);if(here.length){msg(here[0].name,"嗨，沒想到在這裡遇到你。");log("偶遇","你在"+l+"遇見"+here.map(c=>c.name).join("、")+"。")}showPage("home")}
 function act(a){let p=cur(),mins=30,txt="";if(a==="eat"){if(S.money<120){toast("資金不足");return}S.money-=120;p.hunger=clamp(p.hunger+38);txt="吃了點東西，飽足感提升。"}else if(a==="shower"){p.hygiene=clamp(p.hygiene+48);p.mood=clamp(p.mood+5);txt="洗澡整理後清爽許多。"}else if(a==="sleep"){p.energy=clamp(p.energy+55);p.hunger=clamp(p.hunger-7);mins=240;txt="好好休息了一段時間。"}else if(a==="clean"){p.energy=clamp(p.energy-5);p.mood=clamp(p.mood+8);txt="整理了生活空間。"}else if(a==="sing"){p.skills.歌唱+=3;p.energy=clamp(p.energy-11);txt="練習歌唱，能力提升。"}else if(a==="dance"){p.skills.舞蹈+=3;p.energy=clamp(p.energy-14);txt="練習舞蹈，能力提升。"}else if(a==="music"){p.fun=clamp(p.fun+18);p.mood=clamp(p.mood+8);txt="聽音樂放鬆心情。"}else if(a==="diary"){S.memories.unshift({time:stamp(),text:"寫下今天的心情與想法。"});txt="你記錄了今天的心情。"}else if(a==="world"){showPage("world");return}else if(a==="phone"||a==="messages"){showPage("phone");return}else if(a==="people"){showPage("people");return}else if(a==="social"){modal("社群動態",'<div class=empty>目前社群動態會隨著世界事件慢慢累積。先去認識其他人物吧。</div>');return}p.mood=clamp(p.mood+2);log("生活行動",txt);tick(mins);toast(txt)}
@@ -107,7 +160,12 @@ function job(id,yes){let j=S.jobs.find(x=>x.id===id);if(!j)return;if(yes){j.stat
 function stampAt(d,m){return "第 "+d+" 天 "+String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
 function modal(t,h){$("modaltitle").textContent=t;$("modalbody").innerHTML=h;$("modal").classList.add("on")}function closeModal(){$("modal").classList.remove("on")} $("close").onclick=closeModal;$("modal").onclick=e=>{if(e.target===$("modal"))closeModal()}
 function filterPeople(){let q=$("peopleSearch").value.toLowerCase();$("peopleList").innerHTML=S.characters.filter(c=>(c.name+c.group+c.place).toLowerCase().includes(q)).map(personRow).join("")||'<div class=empty>沒有符合人物</div>'}
-function filterRoster(){let q=$("rosterSearch").value.toLowerCase();$("rosterList").innerHTML=DB.filter(g=>(g[0]+g[1].join("")).toLowerCase().includes(q)).map(g=>'<div class=feed><b>'+esc(g[0])+'</b><br>'+(g[0]==="VERA"?"正式名單已載入 · "+g[1].map(esc).join("、"):"你已提供資料｜網站版尚未同步")+"</div>").join("")}
+function filterRoster(){
+ let q=$("rosterSearch").value.toLowerCase();
+ let groupItems=DB.filter(g=>(g[0]+g[1].join("")).toLowerCase().includes(q)).map(g=>'<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+g[1].length+' 位</span><br>'+esc(g[2])+'<br>'+g[1].map(esc).join("、")+'</div>').join("");
+ let soloItems=SOLO_ARTISTS.filter(a=>(a.label+a.name+(a.aliases||[]).join("")).toLowerCase().includes(q)).map(a=>'<div class=feed><b>'+esc(a.name)+'</b> <span class=pill>個人歌手</span><br>'+esc((a.aliases||[]).join("、"))+'</div>').join("");
+ $("rosterList").innerHTML=groupItems+soloItems||'<div class=empty>沒有符合的資料</div>';
+}
 function feedback(){let d=$("fbdesc").value.trim();if(!d){toast("請先描述問題");return}let body="### 類型\n"+$("fbtype").value+"\n\n### 描述\n"+d+"\n\n### 重現步驟\n"+($("fbstep").value||"未提供")+"\n\n### 測試資訊\n版本："+S.version+"\n遊戲時間："+stamp()+"\n玩家角色："+S.identity.name+"\n瀏覽器："+navigator.userAgent;window.open("https://github.com/alicewan991021/IDOL-CONNECTION/issues/new?title="+encodeURIComponent("[遊戲測試] "+$("fbtype").value)+"&body="+encodeURIComponent(body),"_blank")}
 function toast(t){let x=$("toast");x.textContent=t;x.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>x.style.display="none",2100)}
 window.showPage=showPage;window.travel=travel;window.act=act;window.inspect=inspect;window.switchTo=switchTo;window.interact=interact;window.job=job;window.modal=modal;window.closeModal=closeModal;window.save=save;window.exportSave=exportSave;window.feedback=feedback;window.filterPeople=filterPeople;window.filterRoster=filterRoster;window.$=$;
