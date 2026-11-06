@@ -12,11 +12,11 @@
 (function(){
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),rand=a=>a[Math.floor(Math.random()*a.length)],clamp=n=>Math.max(0,Math.min(100,n));
 const DB=[
-["Ozone",["周祖安","周子翔","黃文廷","林佳辰","林煥鈞","李哲言"],"六人名單｜公開資料同步"],
-["AcQUA 源少年",["黃莑茗","盧佾暘","李秉諭","林毓家"],"現任四人名單｜須弘道列為曾任成員"],
+["Ozone",["祖安","子翔","文廷","佳辰","煥鈞","哲言"],"六人藝名｜本名另存"],
+["AcQUA 源少年",["莑茗","佾暘","貢丸","家家"],"現任四人藝名｜本名另存；須弘道列為曾任成員"],
 ["FEniX",["浦洋","峻廷","家齊","MAX","承隆"],"專案成員名稱"],
 ["VERA",["Nelson（紀成澔）","藍弟（藍子桓）","蔡朕","學文（廖學文）","孟維"],"團體成員；巴比另列個人歌手"],
-["U:NUS",["高胥崴","高有翔","吳昱廷","蔡承祐"],"四人名單｜公開資料同步"],
+["U:NUS",["胥崴","有翔","昱廷","承祐"],"主要使用中文名字；英文名作為輔助稱呼"],
 ["OPENsi",["黃威任","陳治廷","邱勝揚","陳子輇"],"四人名單｜2026 合約期滿後單飛不解散"],
 ["Saturnday",["新民","立杰","凱杰","永安"],"專案成員名稱"],
 ["F.F.O",["鈞嘉","俊希","小新","彥旭","勝銘","至琦","加藤琉士"],"鈞嘉為藝名／常用名；張鈞嘉為本名"],
@@ -31,6 +31,20 @@ const SOLO_ARTISTS=[
  {label:"植宇（個人歌手）",name:"植宇",key:"solo|植宇",aliases:["呂植宇"],producerCredit:"LCY",affiliations:[]}
 ];
 const ARTIST_META={
+ "Ozone|祖安":{displayName:"祖安",legalName:"周祖安"},
+ "Ozone|子翔":{displayName:"子翔",legalName:"周子翔"},
+ "Ozone|文廷":{displayName:"文廷",legalName:"黃文廷"},
+ "Ozone|佳辰":{displayName:"佳辰",legalName:"林佳辰"},
+ "Ozone|煥鈞":{displayName:"煥鈞",legalName:"林煥鈞"},
+ "Ozone|哲言":{displayName:"哲言",legalName:"李哲言"},
+ "AcQUA 源少年|莑茗":{displayName:"莑茗",legalName:"黃莑茗"},
+ "AcQUA 源少年|佾暘":{displayName:"佾暘",legalName:"盧佾暘"},
+ "AcQUA 源少年|貢丸":{displayName:"貢丸",legalName:"李秉諭"},
+ "AcQUA 源少年|家家":{displayName:"家家",legalName:"林毓家"},
+ "U:NUS|胥崴":{displayName:"胥崴",legalName:"高胥崴",englishName:"Guei"},
+ "U:NUS|有翔":{displayName:"有翔",legalName:"高有翔",englishName:"Sean Ko"},
+ "U:NUS|昱廷":{displayName:"昱廷",legalName:"吳昱廷",englishName:"AuZTIN"},
+ "U:NUS|承祐":{displayName:"承祐",legalName:"蔡承祐",englishName:"C.Y"},
  "F.F.O|鈞嘉":{displayName:"鈞嘉",legalName:"張鈞嘉",note:"遊戲與藝人名單使用「鈞嘉」；「張鈞嘉」是本名。"},
  "ARKis|Vin":{displayName:"Vin",stageName:"Vin",actorName:"黃嘉楷",note:"Vin 是藝名；黃嘉楷是以演員身分出現時使用的姓名。"},
  "ARKis|Mikey":{displayName:"Mikey",stageName:"Mikey",legalName:"伍承慶",note:"Mikey 是藝名；伍承慶是本名，較少使用。"},
@@ -95,7 +109,7 @@ function createWorld(){
  player.id=soloProfile?soloProfile.key:"player|"+name;player.isPlayer=true;player.meta=ARTIST_META[group+"|"+name]||null;
  if(soloProfile){player.meta=ARTIST_META[soloProfile.key]||null;player.affiliations=soloProfile.affiliations||[];player.aliases=soloProfile.aliases||[];player.producerCredit=soloProfile.producerCredit||"";}
  chars=chars.filter(c=>c.id!==player.id&&!(c.group===group&&c.name===name));chars.unshift(player);
- S={version:"0.4.1",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:"",artistKey:soloProfile?soloProfile.key:null},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};
+ S={version:"0.4.2",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:"",artistKey:soloProfile?soloProfile.key:null},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};
  seedJobs();log("世界開始","你以"+(mode==="manager"?"獨立經紀人":soloProfile?"個人歌手":"團體成員")+"身分開始新的生活。");$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();
 }
 function cur(){return S.characters.find(c=>c.id===S.controlId)||S.characters[0]}
@@ -142,6 +156,7 @@ function groupRows(){
   const members=g[1].map(n=>{
    const m=ARTIST_META[g[0]+"|"+n]||{},labels=[];
    if(m.legalName)labels.push("本名："+m.legalName);
+   if(m.englishName)labels.push("英文名："+m.englishName);
    if(m.actorName)labels.push("演員身分使用名："+m.actorName);
    return esc(n)+(labels.length?'<span class=tiny muted>（'+esc(labels.join("；"))+'）</span>':"");
   }).join("、");
@@ -166,6 +181,7 @@ function inspect(id){
  if(!c)return;
  let r=rel(S.controlId,id),meta=c.meta||ARTIST_META[c.group+"|"+c.name]||{},nameInfo=[];
  if(meta.legalName)nameInfo.push("本名："+meta.legalName);
+ if(meta.englishName)nameInfo.push("英文名："+meta.englishName);
  if(meta.actorName)nameInfo.push("演員身分使用名："+meta.actorName);
  if(meta.alternateName)nameInfo.push("其他常用名："+meta.alternateName);
  if(meta.producerCredit)nameInfo.push("音樂製作署名："+meta.producerCredit);
@@ -185,7 +201,15 @@ function modal(t,h){$("modaltitle").textContent=t;$("modalbody").innerHTML=h;$("
 function filterPeople(){let q=$("peopleSearch").value.toLowerCase();$("peopleList").innerHTML=S.characters.filter(c=>(c.name+c.group+c.place).toLowerCase().includes(q)).map(personRow).join("")||'<div class=empty>沒有符合人物</div>'}
 function filterRoster(){
  let q=$("rosterSearch").value.toLowerCase();
- let groupItems=DB.filter(g=>(g[0]+g[1].join("")).toLowerCase().includes(q)).map(g=>'<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+g[1].length+' 位</span><br>'+esc(g[2])+'<br>'+g[1].map(esc).join("、")+'</div>').join("");
+ let groupItems=DB.filter(g=>{
+  const searchable=g[0]+g[1].join("")+g[1].map(n=>{const m=ARTIST_META[g[0]+"|"+n]||{};return (m.legalName||"")+(m.englishName||"")}).join("");
+  return searchable.toLowerCase().includes(q);
+ }).map(g=>'<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+g[1].length+' 位</span><br>'+esc(g[2])+'<br>'+g[1].map(n=>{
+  const m=ARTIST_META[g[0]+"|"+n]||{},extra=[];
+  if(m.legalName)extra.push("本名："+m.legalName);
+  if(m.englishName)extra.push("英文名："+m.englishName);
+  return esc(n)+(extra.length?"（"+esc(extra.join("；"))+"）":"");
+ }).join("、")+'</div>').join("");
  let soloItems=SOLO_ARTISTS.filter(a=>(a.label+a.name+(a.aliases||[]).join("")).toLowerCase().includes(q)).map(a=>'<div class=feed><b>'+esc(a.name)+'</b> <span class=pill>個人歌手</span><br>'+esc((a.aliases||[]).join("、"))+'</div>').join("");
  $("rosterList").innerHTML=groupItems+soloItems||'<div class=empty>沒有符合的資料</div>';
 }
