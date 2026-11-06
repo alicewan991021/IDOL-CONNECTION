@@ -51,7 +51,7 @@ function fillMembers(){
  }
 }
 $("idolMode").onclick=()=>setMode("idol");$("managerMode").onclick=()=>setMode("manager");
-function setMode(m){mode=m;$("idolMode").classList.toggle("active",m==="idol");$("managerMode").classList.toggle("active",m==="manager");$("idolFields").hidden=m!=="idol";$("managerFields").hidden=m!=="manager"}
+function setMode(m){mode=m;$("idolMode").classList.toggle("active",m==="idol");$("managerMode").classList.toggle("active",m==="manager");$("idolFields").hidden=m!=="idol";$("managerFields").hidden=m!=="manager";if(m==="manager")$("start").disabled=false;else fillMembers()}
 function person(name,group,place){return {id:group+"|"+name,name,group,place,energy:70+Math.random()*25,hunger:60+Math.random()*35,hygiene:65+Math.random()*30,social:50+Math.random()*40,fun:50+Math.random()*40,mood:60+Math.random()*30,money:20000,skills:{歌唱:25,舞蹈:25,表演:20},trait:rand(["慢熟","外向","細心","行動派","隨和","好勝","感性","理性"]),schedule:"自由活動"}}
 function createWorld(){let group,name;if(mode==="idol"){group=$("group").value;let solo=SOLO_GROUPS.includes(group);name=solo?(group.startsWith("HAKU")?"HAKU":"呂植宇"): $("member").value;if(!solo&&!name){toast("此團體成員名單尚未同步，暫時無法建立角色");return}}else{group="獨立經紀人";name=$("managerName").value.trim()||"我的經紀人"}
 let chars=all.map((x,i)=>{let c=person(x.name,x.group,LOC[(i+2)%LOC.length][0]);c.provisional=!!x.provisional;return c;});let player=person(name,group,mode==="manager"?"經紀公司":"宿舍");player.id="player|"+name;player.isPlayer=true;chars=chars.filter(c=>!(c.name===name&&c.group===group));chars.unshift(player);
