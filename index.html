@@ -92,10 +92,10 @@ function createWorld(){
   return c;
  });
  let player=person(name,group,mode==="manager"?"經紀公司":"宿舍");
- player.id=soloProfile?soloProfile.key:"player|"+name;player.isPlayer=true;
+ player.id=soloProfile?soloProfile.key:"player|"+name;player.isPlayer=true;player.meta=ARTIST_META[group+"|"+name]||null;
  if(soloProfile){player.meta=ARTIST_META[soloProfile.key]||null;player.affiliations=soloProfile.affiliations||[];player.aliases=soloProfile.aliases||[];player.producerCredit=soloProfile.producerCredit||"";}
  chars=chars.filter(c=>c.id!==player.id&&!(c.group===group&&c.name===name));chars.unshift(player);
- S={version:"0.4.0",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:"",artistKey:soloProfile?soloProfile.key:null},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};
+ S={version:"0.4.1",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:"",artistKey:soloProfile?soloProfile.key:null},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0};
  seedJobs();log("世界開始","你以"+(mode==="manager"?"獨立經紀人":soloProfile?"個人歌手":"團體成員")+"身分開始新的生活。");$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();
 }
 function cur(){return S.characters.find(c=>c.id===S.controlId)||S.characters[0]}
