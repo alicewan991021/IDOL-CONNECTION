@@ -139,13 +139,21 @@ function feed(e){return '<div class=feed><time>'+esc(e.time)+'</time><b>'+esc(e.
 function groupRows(){
  const groupHtml=DB.map(g=>{
   const extra=FORMATIVE_MEMBERS[g[0]]||[];
-  return '<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+g[1].length+' 位</span><br><span class=tiny muted>'+esc(g[2])+'</span><br>'+g[1].map(esc).join("、")+(extra.length?'<br><span class=tiny muted>曾任成員：'+extra.map(esc).join("、")+'</span>':"")+'</div>';
+  const members=g[1].map(n=>{
+   const m=ARTIST_META[g[0]+"|"+n]||{},labels=[];
+   if(m.legalName)labels.push("本名："+m.legalName);
+   if(m.actorName)labels.push("演員身分使用名："+m.actorName);
+   return esc(n)+(labels.length?'<span class=tiny muted>（'+esc(labels.join("；"))+'）</span>':"");
+  }).join("、");
+  return '<div class=feed><b>'+esc(g[0])+'</b> <span class=pill>'+g[1].length+' 位</span><br><span class=tiny muted>'+esc(g[2])+'</span><br>'+members+(extra.length?'<br><span class=tiny muted>曾任成員：'+extra.map(esc).join("、")+'</span>':"")+'</div>';
  }).join("");
  const soloHtml='<div class=feed><b>個人歌手</b> <span class=pill>'+SOLO_ARTISTS.length+' 位</span><br>'+SOLO_ARTISTS.map(a=>{
-  const meta=ARTIST_META[a.key]||{};let note=meta.legalName?"本名："+meta.legalName:meta.alternateName?"其他常用名："+meta.alternateName:"";
-  if(meta.producerCredit)note+=(note?"；":"")+"音樂製作署名："+meta.producerCredit;
-  if(a.affiliations&&a.affiliations.length)note+=(note?"；":"")+"團體關聯："+a.affiliations.join("、");
-  return '<div style="padding:5px 0"><b>'+esc(a.name)+'</b>'+(note?'<div class=tiny muted>'+esc(note)+'</div>':"")+'</div>';
+  const meta=ARTIST_META[a.key]||{},notes=[];
+  if(meta.legalName)notes.push("本名："+meta.legalName);
+  if(meta.alternateName)notes.push("其他常用名："+meta.alternateName);
+  if(meta.producerCredit)notes.push("音樂製作署名："+meta.producerCredit);
+  if(a.affiliations&&a.affiliations.length)notes.push("團體關聯："+a.affiliations.join("、"));
+  return '<div style="padding:5px 0"><b>'+esc(a.name)+'</b>'+(notes.length?'<div class=tiny muted>'+esc(notes.join("；"))+'</div>':"")+'</div>';
  }).join("")+'</div>';
  return groupHtml+soloHtml;
 }
@@ -153,7 +161,22 @@ function relationsHtml(){let r=Object.values(S.relationships).filter(x=>x.a===S.
 function showPage(p){page=p;render()}function travel(l){let p=cur();if(p.place===l){toast("你已在這個地點");return}p.place=l;p.schedule="前往"+l;log("移動","你前往"+l+"。");tick(15);let here=S.characters.filter(c=>c.id!==p.id&&c.place===l);if(here.length){msg(here[0].name,"嗨，沒想到在這裡遇到你。");log("偶遇","你在"+l+"遇見"+here.map(c=>c.name).join("、")+"。")}showPage("home")}
 function act(a){let p=cur(),mins=30,txt="";if(a==="eat"){if(S.money<120){toast("資金不足");return}S.money-=120;p.hunger=clamp(p.hunger+38);txt="吃了點東西，飽足感提升。"}else if(a==="shower"){p.hygiene=clamp(p.hygiene+48);p.mood=clamp(p.mood+5);txt="洗澡整理後清爽許多。"}else if(a==="sleep"){p.energy=clamp(p.energy+55);p.hunger=clamp(p.hunger-7);mins=240;txt="好好休息了一段時間。"}else if(a==="clean"){p.energy=clamp(p.energy-5);p.mood=clamp(p.mood+8);txt="整理了生活空間。"}else if(a==="sing"){p.skills.歌唱+=3;p.energy=clamp(p.energy-11);txt="練習歌唱，能力提升。"}else if(a==="dance"){p.skills.舞蹈+=3;p.energy=clamp(p.energy-14);txt="練習舞蹈，能力提升。"}else if(a==="music"){p.fun=clamp(p.fun+18);p.mood=clamp(p.mood+8);txt="聽音樂放鬆心情。"}else if(a==="diary"){S.memories.unshift({time:stamp(),text:"寫下今天的心情與想法。"});txt="你記錄了今天的心情。"}else if(a==="world"){showPage("world");return}else if(a==="phone"||a==="messages"){showPage("phone");return}else if(a==="people"){showPage("people");return}else if(a==="social"){modal("社群動態",'<div class=empty>目前社群動態會隨著世界事件慢慢累積。先去認識其他人物吧。</div>');return}p.mood=clamp(p.mood+2);log("生活行動",txt);tick(mins);toast(txt)}
 function rel(a,b){let k=[a,b].sort().join("~");return S.relationships[k]||(S.relationships[k]={a,b,familiarity:0,friendship:0,trust:0,affection:0,conflict:0,history:[]})}
-function inspect(id){let c=S.characters.find(x=>x.id===id);if(!c)return;let r=rel(S.controlId,id);let h='<div class=person><div class=avatar>'+esc(c.name.slice(0,1))+'</div><div class=personmain><b>'+esc(c.name)+'</b><small>'+esc(c.group)+" · "+esc(c.place)+" · "+esc(c.trait)+"（測試參數）</small></div></div><div class=grid2><div class=note>體力 "+Math.round(c.energy)+"%</div><div class=note>飽足 "+Math.round(c.hunger)+"%</div><div class=note>清潔 "+Math.round(c.hygiene)+"%</div><div class=note>心情 "+Math.round(c.mood)+"%</div></div><p class=tiny muted>歌唱 "+c.skills.歌唱+" · 舞蹈 "+c.skills.舞蹈+" · 表演 "+c.skills.表演+"</p>";if(S.mode==="idol"&&id!==S.playerId)h+='<button class=primary onclick="switchTo(\''+esc(id)+'\')">切換操控角色</button>';if(id!==S.controlId)h+='<div class=grid2 style="margin-top:8px">'+["chat","joke","praise","work","invite","apologize"].map((t,i)=>'<button onclick="interact(\''+esc(id)+'\',\''+t+'\')">'+["聊天","開玩笑","稱讚","聊工作","邀約吃飯","道歉和好"][i]+"</button>").join("")+"</div>";modal(c.name+"｜人物狀態",h)}
+function inspect(id){
+ let c=S.characters.find(x=>x.id===id);
+ if(!c)return;
+ let r=rel(S.controlId,id),meta=c.meta||ARTIST_META[c.group+"|"+c.name]||{},nameInfo=[];
+ if(meta.legalName)nameInfo.push("本名："+meta.legalName);
+ if(meta.actorName)nameInfo.push("演員身分使用名："+meta.actorName);
+ if(meta.alternateName)nameInfo.push("其他常用名："+meta.alternateName);
+ if(meta.producerCredit)nameInfo.push("音樂製作署名："+meta.producerCredit);
+ if(meta.note)nameInfo.push(meta.note);
+ if(c.affiliations&&c.affiliations.length)nameInfo.push("團體關聯："+c.affiliations.join("、"));
+ let details=nameInfo.length?'<div class=note style="margin:8px 0">'+nameInfo.map(esc).join("<br>")+'</div>':"";
+ let h='<div class=person><div class=avatar>'+esc(c.name.slice(0,1))+'</div><div class=personmain><b>'+esc(c.name)+'</b><small>'+esc(c.group)+" · "+esc(c.place)+" · "+esc(c.trait)+"（測試參數）</small></div></div>"+details+'<div class=grid2><div class=note>體力 '+Math.round(c.energy)+'%</div><div class=note>飽足 '+Math.round(c.hunger)+'%</div><div class=note>清潔 '+Math.round(c.hygiene)+'%</div><div class=note>心情 '+Math.round(c.mood)+'%</div></div><p class=tiny muted>歌唱 '+c.skills.歌唱+' · 舞蹈 '+c.skills.舞蹈+' · 表演 '+c.skills.表演+'</p>';
+ if(S.mode==="idol"&&id!==S.playerId)h+='<button class=primary onclick="switchTo(\''+esc(id)+'\')">切換操控角色</button>';
+ if(id!==S.controlId)h+='<div class=grid2 style="margin-top:8px">'+["chat","joke","praise","work","invite","apologize"].map((t,i)=>'<button onclick="interact(\''+esc(id)+'\',\''+t+'\')">'+["聊天","開玩笑","稱讚","聊工作","邀約吃飯","道歉和好"][i]+"</button>").join("")+'</div>';
+ modal(c.name+"｜人物狀態",h);
+}
 function switchTo(id){if(S.mode==="manager"){toast("經紀人仍是玩家身分，可查看但不切換成藝人");return}S.controlId=id;S.place=cur().place;log("切換視角","你改由"+cur().name+"的視角繼續生活。");closeModal();render()}
 function interact(id,t){let a=cur(),b=S.characters.find(c=>c.id===id),r=rel(a.id,id),same=a.place===b.place,inc=same?6:2,txt="";let map={chat:"你和"+b.name+"聊了近況。",joke:"你和"+b.name+"開了個玩笑。",praise:"你真誠地稱讚了"+b.name+"。",work:"你們談了最近的工作。",invite:"你邀請"+b.name+"一起吃飯。",apologize:"你試著表達歉意，希望彼此能理解。"};if(t==="chat"){r.familiarity=clamp(r.familiarity+inc);r.friendship=clamp(r.friendship+4);r.trust=clamp(r.trust+2)}if(t==="joke"){r.familiarity+=2;r.friendship+=5}if(t==="praise"){r.affection+=4;r.trust+=3}if(t==="work"){r.familiarity+=3;r.trust+=4}if(t==="invite"){if(S.money<200){toast("資金不足");return}S.money-=200;r.friendship+=7;r.affection+=3}if(t==="apologize"){r.conflict=clamp(r.conflict-10);r.trust=clamp(r.trust+4)}txt=map[t];r.history.push({time:stamp(),text:txt});a.social=clamp(a.social+7);log("人物互動",txt+(same?" 你們在同一個地點碰面。":" 透過手機聯絡。"));msg(b.name,"剛剛聊得不錯，有空再一起聊吧。");tick(20);closeModal();render()}
 function job(id,yes){let j=S.jobs.find(x=>x.id===id);if(!j)return;if(yes){j.status="已接受";S.appointments.push({...j,status:"已接受"});log("接受邀約","你接受「"+j.title+"」，請在第 "+j.day+" 天 "+String(Math.floor(j.minute/60)).padStart(2,"0")+":"+String(j.minute%60).padStart(2,"0")+" 前往"+j.place+"。")}else{j.status="已婉拒";log("婉拒邀約","你婉拒了「"+j.title+"」，把時間留給自己。")}render()}
