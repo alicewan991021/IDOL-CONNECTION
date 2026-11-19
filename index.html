@@ -113,6 +113,52 @@ const FAN_SUPPORT_TYPES=[["生日｜電視牆廣告",28000],["生日｜公車廣
 function startFanProject(){if(S.mode!=="fan"){toast("請以粉絲身分籌備應援");return}const type=$("fanSupportType").value,item=FAN_SUPPORT_TYPES.find(x=>x[0]===type),cost=item?item[1]:0,pf=cur().fanProfile,target=fanTargetById(pf.favoriteId);if(!item)return;if(S.money<cost){toast("資金不足，這項應援需要 $"+cost);return}S.money-=cost;S.fanProjects.unshift({id:"project_"+Math.random().toString(36).slice(2,8),type,targetId:target.id,targetName:target.name,cost,status:"籌備中",createdDay:S.day,finishDay:S.day+1,organizer:S.identity.name});log("發起粉絲應援","你開始籌備"+target.name+"的「"+type+"」，預計明天完成。");save(true);render();toast("應援企劃已建立，明天完成。")}
 function reactToFanPost(id,action){const post=S.fanPosts.find(x=>x.id===id);if(!post)return;if(action==="like"){post.likes++;toast("已按讚")}else if(action==="repost"){post.reposts++;log("轉發粉絲貼文","你轉發了"+post.authorName+"的追星紀錄。");toast("已轉發貼文")}if(S.mode==="idol"&&post.targetId===S.playerId){post.seenByArtist=true;const author=S.characters.find(c=>c.id===post.authorId);if(author&&author.fanProfile){author.fanProfile.recognition++;const r=rel(S.playerId,author.id);r.familiarity=clamp(r.familiarity+5);msg(author.name,"謝謝你看到我的貼文！")}}save(true);render()}
 
+function fansPageHtml(){
+ const p=cur(),isFan=S.mode==="fan";
+ let h="<div class=card><h3>粉絲生態</h3><p>粉絲都有個人帳與追星帳，可以依照自己的生活安排活動、拍攝、修圖和發文。</p></div>";
+ if(isFan){
+  const f=p.fanProfile;
+  h+="<div class=card><h3>我的追星生活</h3><p>支持："+esc(f.favoriteName)+"<br>類型："+esc(f.kind)+"<br>個人帳："+esc(p.accounts.personal.handle)+"<br>追星帳："+esc(p.accounts.stan.handle)+"<br>追蹤者："+f.followers+"<br>出席活動："+f.attendance+" 場<br>相機／拍攝："+esc(f.equipment)+" · 拍攝 "+f.photoSkill+" · 修圖 "+f.editSkill+"</p><button data-fan-action='write'>寫追星心得</button></div>";
+ }
+ h+="<div class=card><h3>活動行程</h3>";
+ S.fanEvents.forEach(ev=>{
+  h+="<div class=feed><b>"+esc(ev.title)+"</b> · "+esc(ev.type)+"<br>第 "+ev.day+" 天 · "+esc(ev.place)+" · $"+ev.fee+" · "+ev.attendees.length+" 人參加<br>";
+  if(isFan){
+   if(ev.attendees.includes(S.playerId)){
+    if(S.photoDrafts.some(d=>d.eventId===ev.id))h+="<span class=pill>已拍攝</span>";
+    else h+="<button data-fan-action='capture' data-id='"+esc(ev.id)+"'>拍攝紀錄</button>";
+   }else h+="<button data-fan-action='attend' data-id='"+esc(ev.id)+"'>報名／參加</button>";
+  }
+  h+="</div>";
+ });
+ h+="</div>";
+ if(isFan){
+  h+="<div class=card><h3>待整理照片</h3>";
+  if(!S.photoDrafts.length)h+="<p>活動後可先拍攝，之後再整理、修圖和撰寫心得，不必當天發文。</p>";
+  S.photoDrafts.forEach(d=>{
+   h+="<div class=feed><b>"+esc(d.eventTitle)+"</b> · "+esc(d.status)+"<br>";
+   if(d.status==="待整理")h+="<button data-fan-action='edit' data-id='"+esc(d.id)+"'>整理／修圖</button>";
+   if(d.status==="已修圖")h+="<button data-fan-action='publish' data-id='"+esc(d.id)+"'>撰寫心得並發布</button>";
+   h+="</div>";
+  });
+  h+="</div><div class=card><h3>粉絲應援</h3><select id=fanSupportType>";
+  FAN_SUPPORT_TYPES.forEach(x=>h+="<option value='"+esc(x[0])+"'>"+esc(x[0])+" · $"+x[1]+"</option>");
+  h+="</select><button data-fan-action='project'>發起應援企劃</button>";
+  S.fanProjects.forEach(pr=>h+="<div class=feed>"+esc(pr.type)+" · "+esc(pr.status)+" · $"+pr.cost+"</div>");
+  h+="</div>";
+ }
+ h+="<div class=card><h3>世界裡的粉絲</h3>";
+ S.characters.filter(c=>c.roleType==="fan").forEach(f=>h+="<div class=feed>"+esc(f.name)+" · "+esc(f.fanProfile.kind)+" · 支持 "+esc(f.fanProfile.favoriteName)+" · "+f.fanProfile.followers+" 位追蹤者</div>");
+ h+="</div><div class=card><h3>粉絲圈貼文</h3>";
+ let posts=S.mode==="idol"?S.fanPosts.filter(x=>x.targetId===S.playerId):S.fanPosts;
+ posts.slice(0,10).forEach(post=>{
+  h+="<div class=feed><b>"+esc(post.authorName)+"</b> · "+esc(post.account)+"<br>"+esc(post.targetName)+" · "+esc(post.kind)+"<br>"+esc(post.text)+"<br>♡ "+post.likes+" <button data-fan-action='like' data-id='"+esc(post.id)+"'>按讚</button>";
+  if(S.mode==="idol"&&post.targetId===S.playerId)h+="<button data-fan-action='repost' data-id='"+esc(post.id)+"'>轉發</button>";
+  h+="</div>";
+ });
+ h+="</div>";
+ return h;
+}
 function createWorld(){
  let group,name,soloProfile=null;
  if(mode==="idol"){const selected=$("group").value;soloProfile=SOLO_ARTISTS.find(a=>a.label===selected)||null;if(soloProfile){group="個人歌手";name=soloProfile.name}else{group=selected;name=$("member").value;if(!name){toast("請先選擇團體成員");return}}}
@@ -138,32 +184,33 @@ function seedJobs(){S.jobs=[{id:"j1",title:"品牌短影音拍攝",description:"
 function save(silent){if(!S)return;try{localStorage.setItem("ic_save_"+S.identity.name,JSON.stringify(S));localStorage.setItem("ic_current",S.identity.name);if(!silent)toast("已儲存世界進度")}catch(e){toast("無法儲存，請先匯出備份")}}
 $("save").onclick=()=>save(false);
 function exportSave(){if(!S)return;let a=document.createElement("a"),u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));a.href=u;a.download="IDOL-CONNECTION-save.json";a.click();URL.revokeObjectURL(u)}
-function importSave(){let f=$("file").files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.characters||!x.identity)throw 0;S=x;$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();toast("存檔匯入完成")}catch(e){toast("存檔格式不正確")}};r.readAsText(f)}
+function importSave(){let f=$("file").files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.characters||!x.identity)throw 0;S=x;ensureFanSystem();$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();toast("存檔匯入完成")}catch(e){toast("存檔格式不正確")}};r.readAsText(f)}
 $("import").onclick=()=>$("file").click();$("file").onchange=importSave;
-$("load").onclick=()=>{let n=localStorage.getItem("ic_current");if(!n){toast("目前瀏覽器沒有存檔");return}try{S=JSON.parse(localStorage.getItem("ic_save_"+n));$("setup").hidden=true;$("game").hidden=false;startClock();render()}catch(e){toast("讀取失敗")}};
+$("load").onclick=()=>{let n=localStorage.getItem("ic_current");if(!n){toast("目前瀏覽器沒有存檔");return}try{S=JSON.parse(localStorage.getItem("ic_save_"+n));ensureFanSystem();$("setup").hidden=true;$("game").hidden=false;startClock();render()}catch(e){toast("讀取失敗")}};
 function startClock(){if(timer)clearInterval(timer);last=Date.now();timer=setInterval(()=>{let now=Date.now(),d=Math.min(5,(now-last)/1000);last=now;if(S&&!S.paused&&!document.hidden)tick(d*S.speed*1.3)},2000)}
 document.addEventListener("visibilitychange",()=>{last=Date.now();if(S&&document.hidden){S.paused=true;$("pause").textContent="繼續";save(true)}});
 $("pause").onclick=()=>{if(!S)return;S.paused=!S.paused;last=Date.now();$("pause").textContent=S.paused?"繼續":"暫停";save(true)};
 $("speed").onclick=()=>{if(!S)return;S.speed=S.speed===1?3:S.speed===3?6:1;$("speed").textContent="×"+S.speed;save(true)};
 function tick(minutes){let h=cur();S.minute+=minutes;while(S.minute>=1440){S.minute-=1440;S.day++;daily();}S.characters.forEach(c=>{let player=c.id===S.controlId;if(player){c.hunger=clamp(c.hunger-minutes*.035);c.energy=clamp(c.energy-minutes*.012);c.hygiene=clamp(c.hygiene-minutes*.009);c.social=clamp(c.social-minutes*.005);c.fun=clamp(c.fun-minutes*.004)}else{c.hunger=clamp(c.hunger-minutes*.024);c.energy=clamp(c.energy-minutes*.009+(c.place==="宿舍"?minutes*.012:0));c.hygiene=clamp(c.hygiene-minutes*.006);c.social=clamp(c.social-minutes*.003);c.fun=clamp(c.fun-minutes*.002)}c.mood=clamp(c.mood+(c.energy<20||c.hunger<15?-minutes*.013:minutes*.0005))});autonomy(minutes);appointments();ambient();save(true);render()}
-function daily(){log("新的一天","第 "+S.day+" 天開始。每個人都會依自己的需求和行程安排生活。");cur().energy=clamp(cur().energy+28);cur().hunger=clamp(cur().hunger+12);seedJobs();if(Math.random()<.5){let c=rand(S.characters.filter(x=>x.id!==S.controlId));msg(c.name,"早安！今天有什麼安排嗎？")}}
+function daily(){log("新的一天","第 "+S.day+" 天開始。每個人都會依自己的需求和行程安排生活。");cur().energy=clamp(cur().energy+28);cur().hunger=clamp(cur().hunger+12);seedJobs();fanDaily();if(Math.random()<.5){let c=rand(S.characters.filter(x=>x.id!==S.controlId));msg(c.name,"早安！今天有什麼安排嗎？")}}
 function autonomy(m){S.characters.filter(c=>c.id!==S.controlId).forEach(c=>{if(Math.random()<Math.min(.55,m/220)){let a=c.energy<25?["回宿舍休息","宿舍"]:c.hunger<25?["去餐廳吃飯","餐廳"]:c.social<35?["去咖啡店看看","咖啡店"]:rand([["前往公司處理工作","經紀公司"],["去練習室練習","練習室 A"],["到餐廳吃飯","餐廳"],["回宿舍休息","宿舍"],["去公園走走","公園"]]);c.schedule=a[0];c.place=a[1];if(a[0].includes("休息"))c.energy=clamp(c.energy+8);if(a[0].includes("吃飯"))c.hunger=clamp(c.hunger+9)}})}
 function ambient(){if(S.minute-S.lastAmbient>100&&Math.random()<.025){S.lastAmbient=S.minute;let options=S.characters.filter(c=>c.id!==S.controlId&&c.place===cur().place);if(options.length){let c=rand(options);log("偶遇", "你在"+cur().place+"遇見了"+c.name+"。對方似乎也沒預料到會在這裡碰面。")}}}
 function appointments(){S.appointments.forEach(a=>{if(a.day===S.day&&a.status==="已接受"&&S.minute>=a.minute&&S.minute<a.minute+a.duration){if(cur().place===a.place){a.status="進行中";log("工作開始","你準時抵達「"+a.title+"」，工作開始。")}else if(S.minute>a.minute+20){a.status="遲到";log("行程遲到","你沒有在時間內抵達「"+a.title+"」。");msg("工作窗口","目前還沒看到你抵達，請回覆是否仍會出席。")}}if(a.day===S.day&&(a.status==="進行中"||a.status==="遲到")&&S.minute>=a.minute+a.duration){a.status="已完成";S.money+=a.pay;log("工作完成","「"+a.title+"」完成，收入 $"+a.pay+"。")}})}
-function render(){if(!S)return;let p=cur();$("clock").textContent="DAY "+S.day+" · "+time();$("topmode").textContent=(S.mode==="manager"?"經紀人":"偶像")+"｜"+S.identity.name;$("pause").textContent=S.paused?"繼續":"暫停";$("speed").textContent="×"+S.speed;$("sideName").textContent=S.identity.name;$("sideRole").textContent=S.mode==="manager"?"獨立經紀人":"操控角色："+p.name+" · "+p.group;$("day").textContent="第 "+S.day+" 天";$("place").textContent=p.place;
+function render(){if(!S)return;let p=cur();$("clock").textContent="DAY "+S.day+" · "+time();$("topmode").textContent=(S.mode==="manager"?"經紀人":S.mode==="fan"?"粉絲":"偶像")+"｜"+S.identity.name;$("pause").textContent=S.paused?"繼續":"暫停";$("speed").textContent="×"+S.speed;$("sideName").textContent=S.identity.name;$("sideRole").textContent=S.mode==="manager"?"獨立經紀人":S.mode==="fan"?"粉絲／"+(p.fanProfile?p.fanProfile.kind:"追星生活"):"操控角色："+p.name+" · "+p.group;$("day").textContent="第 "+S.day+" 天";$("place").textContent=p.place;
 $("metrics").innerHTML=[["體力",p.energy],["飽足",p.hunger],["清潔",p.hygiene],["社交",p.social],["心情",p.mood]].map(x=>'<div class="metric"><span>'+x[0]+'</span><b>'+Math.round(x[1])+'%</b><div class="bar"><i style="width:'+x[1]+'%"></i></div></div>').join("");
-$("nav").innerHTML=PAGES.map(x=>'<button data-p="'+x[0]+'" class="'+(page===x[0]?"active":"")+'">'+x[1]+"　"+x[2]+"</button>").join("");$("bottomnav").innerHTML=[PAGES[0],PAGES[1],PAGES[2],PAGES[3],PAGES[7]].map(x=>'<button data-p="'+x[0]+'" class="'+(page===x[0]?"active":"")+'"><span>'+x[1]+"</span>"+x[2]+"</button>").join("");document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>showPage(b.dataset.p));
-let titles={home:"生活現場",world:"世界地圖",people:"人物與關係",phone:"手機與社群",work:"工作與行程",roster:"世界人物資料庫",journal:"世界紀錄",settings:"存檔與回報"};$("pagetitle").textContent=titles[page];$("pagesub").textContent="世界正在依照每個人的需求、位置與行程運作。";
+$("nav").innerHTML=PAGES.map(x=>'<button data-p="'+x[0]+'" class="'+(page===x[0]?"active":"")+'">'+x[1]+"　"+x[2]+"</button>").join("");$("bottomnav").innerHTML=[PAGES[0],PAGES[1],PAGES[2],PAGES[3],PAGES[4]].map(x=>'<button data-p="'+x[0]+'" class="'+(page===x[0]?"active":"")+'"><span>'+x[1]+"</span>"+x[2]+"</button>").join("");document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+let titles={home:"生活現場",world:"世界地圖",people:"人物與關係",fans:"粉絲生態",phone:"手機與社群",work:"工作與行程",roster:"世界人物資料庫",journal:"世界紀錄",settings:"存檔與回報"};$("pagetitle").textContent=titles[page];$("pagesub").textContent="世界正在依照每個人的需求、位置與行程運作。";
 let html="";
 if(page==="home"){let near=S.characters.filter(c=>c.id!==p.id&&c.place===p.place);html='<div class="scene"><small>'+esc(p.place.toUpperCase())+" · "+stamp()+'</small><h2>'+esc(p.place)+'的日常</h2><p>'+esc((LOC.find(x=>x[0]===p.place)||["","你正在熟悉的地方。"])[1])+'</p><div class="tiny muted" style="margin-top:9px">目前狀態：'+esc(p.schedule||"自由活動")+' · 附近 '+near.length+" 位人物</div></div><div class=card><h3>安排你的生活</h3><div class=grid2>"+actbtn("吃東西","補充飽足 $120","eat")+actbtn("洗澡整理","恢復清潔與心情","shower")+actbtn("睡覺","恢復體力，時間前進 4 小時","sleep")+actbtn("整理房間","改善心情","clean")+actbtn("練習唱歌","歌唱技能提升","sing")+actbtn("練習舞蹈","舞蹈技能提升","dance")+actbtn("聽音樂","休閒與放鬆","music")+actbtn("滑手機","查看訊息與社群","phone")+actbtn("寫日記","保存今日記憶","diary")+actbtn("出門移動","前往其他地點","world")+'</div></div><div class=card><h3>附近的人</h3>'+(near.length?near.slice(0,6).map(personRow).join(""):'<div class=empty>附近目前沒有人，去其他地點走走吧。</div>')+'</div><div class=card><h3>最近發生的事</h3>'+S.events.slice(0,4).map(feed).join("")+'</div>'}
 if(page==="world"){html='<div class=card><h3>前往不同地點</h3><div class=map>'+LOC.map(l=>'<button class="loc '+(p.place===l[0]?"current":"")+'" onclick="travel(\''+l[0]+'\')"><b>'+esc(l[0])+(p.place===l[0]?" · 目前":"")+'</b><small>'+esc(l[1])+'</small></button>').join("")+'</div><div class=note style="margin-top:10px">移動會消耗 15 分鐘，也可能遇見正在此地活動的人物。</div></div><div class=card><h3>目前人物分布</h3>'+LOC.map(l=>{let a=S.characters.filter(c=>c.place===l[0]);return a.length?'<div class=feed><b>'+esc(l[0])+'</b><br>'+a.map(c=>esc(c.name)).join("、")+"</div>":""}).join("")+'</div>'}
 if(page==="people"){html='<div class=card><h3>世界人物</h3><input id=peopleSearch placeholder="搜尋姓名或團體" oninput="filterPeople()" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px"><div id=peopleList>'+S.characters.map(personRow).join("")+'</div></div><div class=card><h3>你的人際關係</h3>'+relationsHtml()+'</div>'}
+if(page==="fans"){html=fansPageHtml()}
 if(page==="phone"){html='<div class=card><h3>IDOL PHONE</h3><div class=scene><small>PERSONAL DEVICE</small><h2>'+esc(S.identity.name)+'，你好。</h2><p>新訊息、邀約和工作通知都會出現在這裡。</p></div><div class=grid2>'+actbtn("訊息通知","看看誰找你","messages")+actbtn("聯絡人","查看世界人物","people")+actbtn("社群動態","觀看世界消息","social")+actbtn("行事曆","查看工作與行程","work")+'</div></div><div class=card><h3>最近訊息</h3>'+(S.messages.length?S.messages.slice(0,15).map(m=>'<div class=feed><time>'+esc(m.time)+" · "+esc(m.from)+"</time>"+esc(m.body)+"</div>").join(""):'<div class=empty>目前沒有新訊息。你可以先去認識其他人。</div>')+'</div>'}
 if(page==="work"){html='<div class=card><h3>工作邀約</h3>'+S.jobs.map(j=>'<div class=feed><b>'+esc(j.title)+'</b> <span class=pill>'+esc(j.status)+'</span><br>'+esc(j.description)+'<br><span class=tiny muted>第 '+j.day+" 天 · "+String(Math.floor(j.minute/60)).padStart(2,"0")+":"+String(j.minute%60).padStart(2,"0")+" · "+esc(j.place)+" · 報酬 $"+j.pay+"</span>"+(j.status==="待回覆"?'<div class=row style="margin-top:7px"><button class=primary onclick="job(\''+j.id+'\',true)">接受</button><button onclick="job(\''+j.id+'\',false)">婉拒</button></div>':"")+"</div>").join("")+'</div><div class=card><h3>已接受行程</h3>'+(S.appointments.length?S.appointments.map(a=>'<div class=feed><b>'+esc(a.title)+'</b> <span class=pill>'+esc(a.status)+'</span><br>'+stampAt(a.day,a.minute)+" · "+esc(a.place)+"</div>").join(""):'<div class=empty>你還沒有接受工作。生活不一定要被工作填滿。</div>')+'</div>'}
 if(page==="roster"){html='<div class=card><h3>12 個團體＋2 位個人歌手</h3><input id=rosterSearch placeholder="搜尋團體或人物" oninput="filterRoster()" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px"><div id=rosterList>'+groupRows()+'</div><div class=note>「舊版草稿待核對」不是官方確認資料。空白名單表示目前沒有足夠資料可載入，請勿視為沒有成員。</div></div>'}
 if(page==="journal"){html='<div class=card><h3>世界事件時間線</h3>'+(S.events.length?S.events.map(feed).join(""):'<div class=empty>世界剛開始運作，事件會隨行動逐漸產生。</div>')+'</div><div class=card><h3>重要記憶</h3>'+(S.memories.length?S.memories.map(m=>'<div class=feed><time>'+esc(m.time)+"</time>"+esc(m.text)+"</div>").join(""):'<div class=empty>目前沒有重要記憶。</div>')+'</div>'}
 if(page==="settings"){html='<div class=card><h3>存檔管理</h3><div class=row><button class=primary onclick="save(false)">立即儲存</button><button onclick="exportSave()">匯出備份</button><button onclick="$(\'file\').click()">匯入備份</button></div><div class=note style="margin-top:10px">存檔保存在目前瀏覽器，每位朋友的裝置各自獨立。更換裝置前請先匯出 JSON。</div></div><div class=card><h3>問題回報</h3><div class=field><label>問題類型</label><select id=fbtype><option>遊戲錯誤／Bug</option><option>介面排版</option><option>人物資料</option><option>操作不直覺</option><option>新功能建議</option><option>其他</option></select></div><div class=field><label>問題描述</label><textarea id=fbdesc rows=4 style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px" placeholder="請描述發生什麼事。"></textarea></div><div class=field><label>重現步驟（選填）</label><textarea id=fbstep rows=3 style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px" placeholder="1. 進入哪裡 2. 點什麼 3. 出現什麼"></textarea></div><button class=primary onclick="feedback()">送出回報</button><p class=tiny muted>送出會開啟 GitHub Issues 頁面，需有 GitHub 帳號才能提交。請勿附上個人敏感資料。</p><hr style="border:0;border-top:1px solid var(--line)"><div class=tiny muted>版本 "+esc(S.version)+" · 角色 "+esc(S.identity.name)+" · 時間 "+stamp()+"</div></div>'}
-$("content").innerHTML=html;document.querySelectorAll("[data-inspect]").forEach(b=>b.onclick=()=>inspect(b.dataset.inspect))}
+$("content").innerHTML=html;document.querySelectorAll("[data-inspect]").forEach(b=>b.onclick=()=>inspect(b.dataset.inspect));document.querySelectorAll("[data-fan-action]").forEach(b=>b.onclick=()=>{const a=b.dataset.fanAction,id=b.dataset.id;if(a==="attend")attendFanEvent(id);else if(a==="capture")captureAtEvent(id);else if(a==="edit")editPhotoDraft(id);else if(a==="publish")openPublishDraft(id);else if(a==="write")openTextFanPost();else if(a==="project")startFanProject();else if(a==="like")reactToFanPost(id,"like");else if(a==="repost")reactToFanPost(id,"repost")})}
 function actbtn(t,d,a){return '<button class=action onclick="act(\''+a+'\')"><b>'+t+'</b><small>'+d+'</small></button>'}
 function personRow(c){return ["<div class=person><div class=avatar>",esc(c.name.slice(0,1)),"</div><div class=personmain><b>",esc(c.name),(c.id===S.controlId?" · 操控中":""),(c.provisional?" <span class=pill>舊版測試資料</span>":""),"</b><small>",esc(c.group)," · ",esc(c.place)," · ",esc(c.schedule),"</small></div><button data-inspect='",esc(c.id),"'>查看</button></div>"].join("")}
 function feed(e){return '<div class=feed><time>'+esc(e.time)+'</time><b>'+esc(e.title)+'</b><br>'+esc(e.body)+'</div>'}
@@ -210,7 +257,7 @@ function inspect(id){
  if(id!==S.controlId)h+='<div class=grid2 style="margin-top:8px">'+["chat","joke","praise","work","invite","apologize"].map((t,i)=>'<button onclick="interact(\''+esc(id)+'\',\''+t+'\')">'+["聊天","開玩笑","稱讚","聊工作","邀約吃飯","道歉和好"][i]+"</button>").join("")+'</div>';
  modal(c.name+"｜人物狀態",h);
 }
-function switchTo(id){if(S.mode==="manager"){toast("經紀人仍是玩家身分，可查看但不切換成藝人");return}S.controlId=id;S.place=cur().place;log("切換視角","你改由"+cur().name+"的視角繼續生活。");closeModal();render()}
+function switchTo(id){if(S.mode!=="idol"){toast("目前身分不能切換成藝人");return}S.controlId=id;S.place=cur().place;log("切換視角","你改由"+cur().name+"的視角繼續生活。");closeModal();render()}
 function interact(id,t){let a=cur(),b=S.characters.find(c=>c.id===id),r=rel(a.id,id),same=a.place===b.place,inc=same?6:2,txt="";let map={chat:"你和"+b.name+"聊了近況。",joke:"你和"+b.name+"開了個玩笑。",praise:"你真誠地稱讚了"+b.name+"。",work:"你們談了最近的工作。",invite:"你邀請"+b.name+"一起吃飯。",apologize:"你試著表達歉意，希望彼此能理解。"};if(t==="chat"){r.familiarity=clamp(r.familiarity+inc);r.friendship=clamp(r.friendship+4);r.trust=clamp(r.trust+2)}if(t==="joke"){r.familiarity+=2;r.friendship+=5}if(t==="praise"){r.affection+=4;r.trust+=3}if(t==="work"){r.familiarity+=3;r.trust+=4}if(t==="invite"){if(S.money<200){toast("資金不足");return}S.money-=200;r.friendship+=7;r.affection+=3}if(t==="apologize"){r.conflict=clamp(r.conflict-10);r.trust=clamp(r.trust+4)}txt=map[t];r.history.push({time:stamp(),text:txt});a.social=clamp(a.social+7);log("人物互動",txt+(same?" 你們在同一個地點碰面。":" 透過手機聯絡。"));msg(b.name,"剛剛聊得不錯，有空再一起聊吧。");tick(20);closeModal();render()}
 function job(id,yes){let j=S.jobs.find(x=>x.id===id);if(!j)return;if(yes){j.status="已接受";S.appointments.push({...j,status:"已接受"});log("接受邀約","你接受「"+j.title+"」，請在第 "+j.day+" 天 "+String(Math.floor(j.minute/60)).padStart(2,"0")+":"+String(j.minute%60).padStart(2,"0")+" 前往"+j.place+"。")}else{j.status="已婉拒";log("婉拒邀約","你婉拒了「"+j.title+"」，把時間留給自己。")}render()}
 function stampAt(d,m){return "第 "+d+" 天 "+String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
