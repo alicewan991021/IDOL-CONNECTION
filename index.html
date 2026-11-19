@@ -203,7 +203,7 @@ function createWorld(){
  let target=mode==="fan"?fanTargets().find(x=>x.id===player.fanProfile.favoriteId):(mode==="idol"?{id:player.id,name:player.name,group:player.group}:{id:"Ozone|祖安",name:"祖安",group:"Ozone"});
  if(mode==="idol")chars.filter(c=>c.roleType==="fan").slice(0,4).forEach(f=>{f.fanProfile.favoriteId=player.id;f.fanProfile.favoriteName=player.name;f.fanProfile.favoriteGroup=player.group});
  S={version:"0.5.0",mode,identity:{name,group,gender:mode==="manager"?$("gender").value:"",artistKey:soloProfile?soloProfile.key:null},playerId:player.id,controlId:player.id,characters:chars,day:1,minute:mode==="manager"?540:480,speed:1,paused:false,money:player.money,place:player.place,relationships:{},events:[],messages:[],jobs:[],appointments:[],memories:[],lastAmbient:0,fanPosts:[],fanEvents:defaultFanEvents(target),fanProjects:[],photoDrafts:[],favoriteTarget:target.id,lastFanPulse:0};
- seedJobs();log("世界開始",mode==="manager"?"你以獨立經紀人身分開始新的生活。":mode==="fan"?"你以粉絲身分開始追星生活，個人帳與追星帳已建立。":"你以"+(soloProfile?"個人歌手":"團體成員")+"身分開始新的生活。");seedInitialFanPosts();fanDaily();$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();
+ seedJobs();log("世界開始",mode==="manager"?"你以獨立經紀人身分開始新的生活。":mode==="fan"?"你以粉絲身分開始追星生活，個人帳與追星帳已建立。":"你以"+(soloProfile?"個人歌手":"團體成員")+"身分開始新的生活。");seedInitialFanPosts();primeFanRelations();fanDaily();$("setup").hidden=true;$("game").hidden=false;save(true);startClock();render();
 }
 $("start").onclick=createWorld;
 function cur(){return S.characters.find(c=>c.id===S.controlId)||S.characters[0]}
@@ -271,6 +271,43 @@ function relationsHtml(){let r=Object.values(S.relationships).filter(x=>x.a===S.
 function showPage(p){page=p;render()}function travel(l){let p=cur();if(p.place===l){toast("你已在這個地點");return}p.place=l;p.schedule="前往"+l;log("移動","你前往"+l+"。");tick(15);let here=S.characters.filter(c=>c.id!==p.id&&c.place===l);if(here.length){msg(here[0].name,"嗨，沒想到在這裡遇到你。");log("偶遇","你在"+l+"遇見"+here.map(c=>c.name).join("、")+"。")}showPage("home")}
 function act(a){let p=cur(),mins=30,txt="";if(a==="eat"){if(S.money<120){toast("資金不足");return}S.money-=120;p.hunger=clamp(p.hunger+38);txt="吃了點東西，飽足感提升。"}else if(a==="shower"){p.hygiene=clamp(p.hygiene+48);p.mood=clamp(p.mood+5);txt="洗澡整理後清爽許多。"}else if(a==="sleep"){p.energy=clamp(p.energy+55);p.hunger=clamp(p.hunger-7);mins=240;txt="好好休息了一段時間。"}else if(a==="clean"){p.energy=clamp(p.energy-5);p.mood=clamp(p.mood+8);txt="整理了生活空間。"}else if(a==="sing"){p.skills.歌唱+=3;p.energy=clamp(p.energy-11);txt="練習歌唱，能力提升。"}else if(a==="dance"){p.skills.舞蹈+=3;p.energy=clamp(p.energy-14);txt="練習舞蹈，能力提升。"}else if(a==="music"){p.fun=clamp(p.fun+18);p.mood=clamp(p.mood+8);txt="聽音樂放鬆心情。"}else if(a==="diary"){S.memories.unshift({time:stamp(),text:"寫下今天的心情與想法。"});txt="你記錄了今天的心情。"}else if(a==="world"){showPage("world");return}else if(a==="phone"||a==="messages"){showPage("phone");return}else if(a==="people"){showPage("people");return}else if(a==="social"){showPage("fans");return}p.mood=clamp(p.mood+2);log("生活行動",txt);tick(mins);toast(txt)}
 function rel(a,b){let k=[a,b].sort().join("~");return S.relationships[k]||(S.relationships[k]={a,b,familiarity:0,friendship:0,trust:0,affection:0,conflict:0,history:[]})}
+function romanceAction(id,action){
+ const other=S.characters.find(x=>x.id===id);
+ if(!other)return;
+ const cross=(S.mode==="idol"&&other.roleType==="fan")||(S.mode==="fan"&&other.roleType==="idol");
+ if(!cross){toast("這段互動不符合目前角色關係");return}
+ const r=rel(S.controlId,id);
+ if(action==="meet"){
+  if(r.familiarity<5){toast("彼此還不夠熟悉，先從公開活動和日常互動開始吧。");return}
+  if(S.money<150){toast("資金不足");return}
+  S.money-=150;r.privateMeet=true;r.familiarity=clamp(r.familiarity+10);r.trust=clamp(r.trust+6);r.affection=clamp(r.affection+4);
+  msg(other.name,"今天能私下聊聊很開心，謝謝你。");log("私下互動","你和"+other.name+"在雙方同意下私下見面，關係更加熟悉。");
+ }else if(action==="date"){
+  if(!r.privateMeet||r.familiarity<15||r.affection<12||r.trust<10){toast("需要先累積熟悉度、信任與好感，才有機會約會。");return}
+  if(S.money<500){toast("資金不足");return}
+  S.money-=500;r.affection=clamp(r.affection+10);r.trust=clamp(r.trust+8);r.dateCount=(r.dateCount||0)+1;
+  log("私人約會","你和"+other.name+"一起度過了一段私人時光。");msg(other.name,"今天的約會很開心，下次再一起出門吧。");
+ }else if(action==="confess"){
+  if(r.status==="交往中"||r.status==="已婚"){toast("你們已經有穩定的關係了");return}
+  if(!r.privateMeet||r.affection<30||r.trust<25){toast("好感與信任還不夠，先多了解彼此吧。");return}
+  if(Math.random()>0.72){r.affection=clamp(r.affection+3);msg(other.name,"我很珍惜我們的關係，但還想再多相處一段時間。");log("感情發展","你向"+other.name+"表達心意，對方希望再多了解彼此。")}
+  else{r.status="交往中";r.affection=clamp(r.affection+8);r.trust=clamp(r.trust+8);msg(other.name,"我也喜歡你，我們試著交往看看吧。");log("開始交往","你和"+other.name+"正式開始交往。")}
+ }else if(action==="marry"){
+  if(r.status!=="交往中"||r.affection<80||r.trust<70){toast("需要穩定交往並累積足夠的好感與信任，才適合談結婚。");return}
+  if(Math.random()>0.65){msg(other.name,"我很認真看待我們的未來，再給我們一點時間吧。");toast("對方希望再多相處一段時間。")}
+  else{r.status="已婚";r.affection=100;r.trust=100;msg(other.name,"我願意和你一起走向下一個人生階段。");log("結婚","你和"+other.name+"決定共組家庭。");S.memories.unshift({time:stamp(),text:"和"+other.name+"結婚，展開人生的新階段。"})}
+ }
+ save(true);closeModal();render();
+}
+function primeFanRelations(){
+ if(S.mode!=="idol")return;
+ S.characters.filter(f=>f.roleType==="fan"&&f.fanProfile.favoriteId===S.playerId).forEach(f=>{
+  const r=rel(S.playerId,f.id),k=f.fanProfile.kind;
+  if(k.includes("固定活動")){r.familiarity=35;r.friendship=24;r.trust=22;r.affection=10}
+  else if(k.includes("拍攝紀錄")){r.familiarity=12;r.friendship=8;r.trust=7;r.affection=4}
+  else{r.familiarity=4;r.friendship=3;r.trust=2}
+ });
+}
 function inspect(id){
  let c=S.characters.find(x=>x.id===id);
  if(!c)return;
@@ -286,7 +323,9 @@ function inspect(id){
  let h='<div class=person><div class=avatar>'+esc(c.name.slice(0,1))+'</div><div class=personmain><b>'+esc(c.name)+'</b><small>'+esc(c.group)+" · "+esc(c.place)+" · "+esc(c.trait)+"（測試參數）</small></div></div>"+details+'<div class=grid2><div class=note>體力 '+Math.round(c.energy)+'%</div><div class=note>飽足 '+Math.round(c.hunger)+'%</div><div class=note>清潔 '+Math.round(c.hygiene)+'%</div><div class=note>心情 '+Math.round(c.mood)+'%</div></div><p class=tiny muted>歌唱 '+c.skills.歌唱+' · 舞蹈 '+c.skills.舞蹈+' · 表演 '+c.skills.表演+'</p>';
  if(S.mode==="idol"&&id!==S.playerId)h+='<button class=primary onclick="switchTo(\''+esc(id)+'\')">切換操控角色</button>';
  if(id!==S.controlId)h+='<div class=grid2 style="margin-top:8px">'+["chat","joke","praise","work","invite","apologize"].map((t,i)=>'<button onclick="interact(\''+esc(id)+'\',\''+t+'\')">'+["聊天","開玩笑","稱讚","聊工作","邀約吃飯","道歉和好"][i]+"</button>").join("")+'</div>';
- modal(c.name+"｜人物狀態",h);
+ const crossRole=(S.mode==="idol"&&c.roleType==="fan")||(S.mode==="fan"&&c.roleType==="idol");
+ if(crossRole)h+="<div class=card><b>私人關係</b><p class=tiny muted>熟悉度 "+r.familiarity+" · 好感 "+r.affection+" · 信任 "+r.trust+" · 狀態 "+(r.status||"尚未發展")+"</p><button data-romance='meet' data-id='"+esc(id)+"'>私下見面</button> <button data-romance='date' data-id='"+esc(id)+"'>約會</button> <button data-romance='confess' data-id='"+esc(id)+"'>表達心意</button> <button data-romance='marry' data-id='"+esc(id)+"'>結婚</button></div>";
+ modal(c.name+"｜人物狀態",h);document.querySelectorAll("[data-romance]").forEach(b=>b.onclick=()=>romanceAction(b.dataset.id,b.dataset.romance));
 }
 function switchTo(id){if(S.mode!=="idol"){toast("目前身分不能切換成藝人");return}S.controlId=id;S.place=cur().place;log("切換視角","你改由"+cur().name+"的視角繼續生活。");closeModal();render()}
 function interact(id,t){let a=cur(),b=S.characters.find(c=>c.id===id),r=rel(a.id,id),same=a.place===b.place,inc=same?6:2,txt="";let map={chat:"你和"+b.name+"聊了近況。",joke:"你和"+b.name+"開了個玩笑。",praise:"你真誠地稱讚了"+b.name+"。",work:"你們談了最近的工作。",invite:"你邀請"+b.name+"一起吃飯。",apologize:"你試著表達歉意，希望彼此能理解。"};if(t==="chat"){r.familiarity=clamp(r.familiarity+inc);r.friendship=clamp(r.friendship+4);r.trust=clamp(r.trust+2)}if(t==="joke"){r.familiarity+=2;r.friendship+=5}if(t==="praise"){r.affection+=4;r.trust+=3}if(t==="work"){r.familiarity+=3;r.trust+=4}if(t==="invite"){if(S.money<200){toast("資金不足");return}S.money-=200;r.friendship+=7;r.affection+=3}if(t==="apologize"){r.conflict=clamp(r.conflict-10);r.trust=clamp(r.trust+4)}txt=map[t];r.history.push({time:stamp(),text:txt});a.social=clamp(a.social+7);log("人物互動",txt+(same?" 你們在同一個地點碰面。":" 透過手機聯絡。"));msg(b.name,"剛剛聊得不錯，有空再一起聊吧。");tick(20);closeModal();render()}
