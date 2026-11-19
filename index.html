@@ -157,9 +157,11 @@ function fansPageHtml(){
  const p=cur(),isFan=S.mode==="fan";
  let h="<div class=card><h3>粉絲生態</h3><p>粉絲都有個人帳與追星帳，可以依照自己的生活安排活動、拍攝、修圖和發文。</p></div>";
  if(isFan){
-  const f=p.fanProfile;
+  const f=p.fanProfile,housing=p.housing||{type:"租屋",name:"我的宿舍",place:"宿舍"},work=p.workProfile||{type:"暫無工作",title:"",place:"",active:false};
+  h+='<div class=card><h3>宿舍／住處與工作</h3><p>居住方式：'+esc(housing.type)+'<br>住處名稱：'+esc(housing.name)+'<br>地點：'+esc(housing.place)+'<br>目前身分：'+esc(work.type)+'<br>工作／課業：'+esc(work.title||"尚未設定")+'<br>地點：'+esc(work.place||"未設定")+'</p><button data-fan-living-edit>修改宿舍與工作</button></div>';
   h+="<div class=card><h3>我的追星生活</h3><p>支持："+esc(f.favoriteName)+"<br>類型："+esc(f.kind)+"<br>個人帳："+esc(p.accounts.personal.handle)+"<br>追星帳："+esc(p.accounts.stan.handle)+"<br>追蹤者："+f.followers+"<br>出席活動："+f.attendance+" 場<br>相機／拍攝："+esc(f.equipment)+" · 拍攝 "+f.photoSkill+" · 修圖 "+f.editSkill+"</p><button data-fan-action='write'>寫追星心得</button></div>";
  }
+ h+=fanLocalPanelHtml();
  h+="<div class=card><h3>活動行程</h3>";
  S.fanEvents.forEach(ev=>{
   h+="<div class=feed><b>"+esc(ev.title)+"</b> · "+esc(ev.type)+"<br>第 "+ev.day+" 天 · "+esc(ev.place)+" · $"+ev.fee+" · "+ev.attendees.length+" 人參加<br>";
